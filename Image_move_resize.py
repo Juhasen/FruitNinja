@@ -2,15 +2,20 @@ import cv2
 import mediapipe as mp
 import numpy as np
 import time
+import imageio
 
 mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
-mp_face_detection = mp.solutions.face_detection
 
 hands = mp_hands.Hands()
-face_detection = mp_face_detection.FaceDetection(min_detection_confidence=0.5)
 
 webcam = cv2.VideoCapture(0)
+
+# Load the image
+img_to_move = cv2.imread('/home/krystian/Repos/FruitNinja/Sigmastycznie.jpg')  
+if img_to_move is None:
+    print("Could not load image")
+    exit(1)
 
 # Initialize the box's position
 box_position = None
@@ -27,9 +32,6 @@ while True:
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     results = hands.process(img)
 
-    # apply face detection model
-    face_results = face_detection.process(img)
-
     # draw annotations on the image
     img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
     if results.multi_hand_landmarks:
@@ -42,18 +44,32 @@ while True:
             distance = np.linalg.norm(thumb_tip - index_tip)
 
             # If the distance is below a certain threshold, update the box's position to the midpoint of the thumb tip and the index finger tip
-            if distance < 50:
+            if distance < 25:
                 box_position = (thumb_tip + index_tip) / 2
 
-    # Draw the box
+    # Overlay the image on the webcam feed at the box_position
     if box_position is not None:
-        cv2.rectangle(img, (int(box_position[0] - 50), int(box_position[1] - 50)), 
-                      (int(box_position[0] + 50), int(box_position[1] + 50)), (0, 255, 0), 2)
+        img_to_move_resized = cv2.resize(img_to_move, (int(distance), int(distance)))
+        x1 = int(box_position[0] - distance / 2)
+        x2 = x1 + img_to_move_resized.shape[1]
+        y1 = int(box_position[1] - distance / 2)
+        y2 = y1 + img_to_move_resized.shape[0]
 
-    # Draw the face detections
-    if face_results.detections:
-        for detection in face_results.detections:
-            mp_drawing.draw_detection(img, detection)
+        # Adjust the positions and the slice of img_to_move_resized if they are outside the image boundaries
+        if x1 < 0:
+            img_to_move_resized = img_to_move_resized[:, -x1:]
+            x1 = 0
+        if y1 < 0:
+            img_to_move_resized = img_to_move_resized[-y1:, :]
+            y1 = 0
+        if x2 > img.shape[1]:
+            img_to_move_resized = img_to_move_resized[:, :(img.shape[1]-x1)]
+            x2 = img.shape[1]
+        if y2 > img.shape[0]:
+            img_to_move_resized = img_to_move_resized[:(img.shape[0]-y1), :]
+            y2 = img.shape[0]
+
+        img[y1:y2, x1:x2] = img_to_move_resized
 
     # Calculate and display the FPS
     frame_counter += 1
