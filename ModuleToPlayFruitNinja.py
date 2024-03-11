@@ -1,8 +1,6 @@
 import cv2
 import mediapipe as mp
-import numpy as np
-import time
-import imageio
+import pyautogui
 
 mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
@@ -11,9 +9,7 @@ hands = mp_hands.Hands()
 
 webcam = cv2.VideoCapture(0)
 
-# Initialize the FPS counter
-frame_counter = 0
-start_time = time.time()
+screen_width, screen_height = pyautogui.size()
 
 while True:
     ret, img = webcam.read()
@@ -29,15 +25,17 @@ while True:
         for hand_landmarks in results.multi_hand_landmarks:
             mp_drawing.draw_landmarks(img, hand_landmarks, connections=mp_hands.HAND_CONNECTIONS)
 
-        
+            # get the position of the wrist
+            wrist_x = hand_landmarks.landmark[mp_hands.HandLandmark.WRIST].x
+            wrist_y = hand_landmarks.landmark[mp_hands.HandLandmark.WRIST].y
 
+            # normalize to screen size
+            screen_x = int(wrist_x * screen_width)
+            screen_y = int(wrist_y * screen_height)
 
-
-    # Calculate and display the FPS
-    frame_counter += 1
-    elapsed_time = time.time() - start_time
-    fps = frame_counter / elapsed_time
-    cv2.putText(img, f"FPS: {fps:.2f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            # move the cursor
+            pyautogui.dragTo(screen_x, screen_y)
+            print(screen_x, screen_y)
 
     if ret:
         cv2.imshow("Juhas", img)
