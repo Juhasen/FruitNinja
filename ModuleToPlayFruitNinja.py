@@ -34,8 +34,7 @@ while True:
             screen_y = int(wrist_y * screen_height)
 
             # move the cursor
-            pyautogui.dragTo(screen_x, screen_y)
-            print(screen_x, screen_y)
+            pyautogui.dragTo(screen_x, screen_y, button="left")
 
     if ret:
         cv2.imshow("Juhas", img)
